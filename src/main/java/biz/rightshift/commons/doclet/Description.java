@@ -71,19 +71,20 @@ public final class Description {
                 /* otherwise its a type */
                 Map<String, Object> description = new HashMap<>();
                 for (MethodDoc method : type.methods()) {
+                    //System.out.print("### METHOD:"+method.toString()+" NAME:" + method.name().toString() + "  \n");
                     Type returnType = method.returnType();
                     if (!"void".equals(returnType.typeName())) {
                         if (method.name().startsWith("get") || method.name().startsWith("is")) {
                             String name = asFieldName(method);
                             Object fieldDescription;
                             if (returnType.isPrimitive()) {
-                                fieldDescription = returnType.typeName();
-                            } else if (returnType.asParameterizedType() != null && isTypeOf(Collection.class, returnType)) {
-                                Object typeParameterDesc =
-                                    describeType(returnType.asParameterizedType().typeArguments()[0].asClassDoc());
-                                fieldDescription = Arrays.asList(typeParameterDesc);
+                                 fieldDescription = returnType.typeName();
+                            // } else if (returnType.asParameterizedType() != null && isTypeOf(Collection.class, returnType)) {
+                            //     Object typeParameterDesc =
+                            //         describeType(returnType.asParameterizedType().typeArguments()[0].asClassDoc(), 1);
+                            //     fieldDescription = Arrays.asList(typeParameterDesc);
                             } else {
-                                fieldDescription = describeType(returnType.asClassDoc());
+                                fieldDescription = "PDCLASS";//describeType(returnType.asClassDoc(), 1);
                             }
                             description.put(name, fieldDescription);
                         }

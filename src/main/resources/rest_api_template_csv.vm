@@ -1,0 +1,33 @@
+
+    
+#foreach ($call in $restCalls)
+#set($delimiter = "_PD_")
+
+$call.getUrl() $delimiter $call.getDescription() $delimiter $call.getMethod()
+$delimiter
+#set($sep = "?")
+#foreach ($var in $call.getRequestParams())
+$sep
+$var.getName()=
+#set($sep = "&")
+#end
+$delimiter
+$call.getConsumes(),$call.getProduces()
+$delimiter
+#foreach ($var in $call.getPathVariables())
+$var.getName():$var.getDescription();
+#end
+$delimiter
+
+#set($sep = "")
+#foreach ($var in $call.getRequestParams())
+$sep {name:$var.getName(),description:$var.getDescription(),default:$var.getDefaultValue(),required:$var.getRequired()}
+#set($sep = ",")
+#end
+$delimiter
+#if ($call.getRequestBody())
+$call.getRequestBody().getStructure()
+#end
+@NL@
+#end
+

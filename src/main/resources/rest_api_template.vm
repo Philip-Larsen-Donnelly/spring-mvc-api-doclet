@@ -1,6 +1,6 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
-        <title>$headTitle</title>
+        <title>$headTitle pHIL</title>
     </head>
     <body>
         <h1>HTTP API</h1>
@@ -27,6 +27,7 @@
                 #set($sep = "&")
             #end
             </b>
+            <p>produces:$call.getProduces() , consumes:$call.getConsumes()</p>
 
             <div style="margin:5px;">
                 #if ($call.getPathVariables().size() > 0)

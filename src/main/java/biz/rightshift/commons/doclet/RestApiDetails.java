@@ -16,6 +16,7 @@ public class RestApiDetails {
     private List<RestApiParameter> requestParams = new ArrayList<>();
     private RestApiRequestBody requestBody;
     private String description;
+    private RestApiAuthorizations preAuth;
 
     /**
      * @param url The URL.
@@ -26,6 +27,7 @@ public class RestApiDetails {
      * @param requestParams The request parameters (after the ? part of the URL).
      * @param requestBody The request body.
      * @param description The request description.
+     * @param preAuth The request pre authorization requirements.
      */
     public RestApiDetails(
             final String url,
@@ -35,7 +37,8 @@ public class RestApiDetails {
             final List<RestApiParameter> pathVariables,
             final List<RestApiParameter> requestParams,
             final RestApiRequestBody requestBody,
-            final String description) {
+            final String description,
+            final RestApiAuthorizations preAuth) {
         this.url = url;
         this.method = method;
         this.produces = produces;
@@ -44,6 +47,7 @@ public class RestApiDetails {
         this.requestParams = requestParams;
         this.requestBody = requestBody;
         this.description = description;
+        this.preAuth = preAuth;
     }
 
     /**
@@ -100,6 +104,27 @@ public class RestApiDetails {
      */
     public String getDescription() {
         return description;
+    }
+
+    /**
+     * @return the preAuth
+     */
+    public String getPreAuth() {
+        String asJson = "{";
+        if (preAuth.getItems().size() == 0){
+            asJson += "}";
+        }
+        else {
+            asJson += " " + preAuth.getName() + " : [";
+            String delim = "";
+            for (String it : preAuth.getItems()){
+                asJson += delim + it;
+                delim = ",";
+            }
+            asJson += "]}";   
+        }
+
+        return asJson;
     }
 
     @Override

@@ -1,0 +1,53 @@
+
+#set($callsep = ",")    
+#set($lastUrl = "")    
+#foreach ($call in $restCalls)
+
+
+#if ($lastUrl != $call.getUrl())
+],"$call.getUrl()" :[{
+#else
+,{
+#end
+    "method" : "$call.getMethod()",
+    "description" : "$call.getDescription()" ,
+    ## $delimiter
+    ## #set($sep = "?")
+    ## #foreach ($var in $call.getRequestParams())
+    ## $sep
+    ## $var.getName()=
+    ## #set($sep = "&")
+    ## #end
+    "consumes" : "$call.getConsumes()",
+    "produces" : "$call.getProduces()",
+    "preAuthorize" : "$call.getPreAuth()",
+    "pathVariables" : {
+    #set($sep = "")
+    #foreach ($var in $call.getPathVariables())
+    $sep "$var.getName()": "$var.getDescription()"
+    #set($sep = ",")
+    #end
+    },
+
+    "requestParams" : [
+    #set($sep = "")
+    #foreach ($var in $call.getRequestParams())
+    $sep {
+        "name" : "$var.getName()",
+        "description" : "$var.getDescription()",
+        "default" : "$var.getDefaultValue()",
+        "required" : $var.getRequired(),
+        "in" : "query"
+        }
+    #set($sep = ",")
+    #end
+    ]
+    #set($body = "")
+    #if ($call.getRequestBody())
+    #set($body = $call.getRequestBody().getStructure())
+    ,"requestBodyStructure" : "$call.getRequestBody().getStructure()"
+    #end
+}
+#set($lastUrl = $call.getUrl())
+#end
+

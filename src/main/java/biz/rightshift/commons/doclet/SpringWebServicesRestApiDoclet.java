@@ -31,6 +31,7 @@ public final class SpringWebServicesRestApiDoclet {
     private static final String REST_KEY = "restCalls";
     private static final String ANNOTATION_CONTROLLER = "Controller";
     private static final String ANNOTATION_REQUEST_PARAM = "RequestMapping";
+    private static final String ANNOTATION_PRE_AUTHORIZE = "PreAuthorize";
     private static final String ANNOTATION_PARAM_PATH_VARIABLE = "PathVariable";
     private static final String ANNOTATION_PARAM_REQUEST_PARAM = "RequestParam";
     private static final String ANNOTATION_PARAM_REQUEST_BODY = "RequestBody";
@@ -69,6 +70,7 @@ public final class SpringWebServicesRestApiDoclet {
 
         List<RestApiDetails> restCalls = new ArrayList<>();
         for (ClassDoc classDoc : root.classes()) {
+
             if (isController(classDoc)) {
                 restCalls.addAll(getRestCallsFor(classDoc));
             }
@@ -130,6 +132,11 @@ public final class SpringWebServicesRestApiDoclet {
         List<RestApiDetails> restCalls = new ArrayList<>();
 
         for (MethodDoc method : classDoc.methods()) {
+            // System.out.println(method.signature());
+            // for (Parameter param :method.parameters()) {
+            //     System.out.println("-- " + param.toString());
+            // }
+            
             if (isEndpoint(method)) {
                 List<RestApiParameter> pathVariables =
                     getVariables(method, ANNOTATION_PARAM_PATH_VARIABLE);
@@ -140,29 +147,55 @@ public final class SpringWebServicesRestApiDoclet {
                 RestApiRequestBody body = getRequestBody(method);
 
                 String url = getContextFor(method);
+                //System.out.print("===> URL: " + url);
 
+                AnnotationDesc preAuthorize = getAnnotation(method, ANNOTATION_PRE_AUTHORIZE);
                 AnnotationDesc requestParam = getAnnotation(method, ANNOTATION_REQUEST_PARAM);
 
-                String httpVerb = getAnnotationValue(requestParam, "method");
-                int lastIndex = httpVerb.lastIndexOf('.');
-                if (lastIndex >= 0 && lastIndex < httpVerb.length()) {
-                    httpVerb = httpVerb.substring(lastIndex + 1);
+                List<String> httpVerbList = new ArrayList<>();
+
+                String httpVerb = getAnnotationValue(requestParam, "method").replace("{","").replace("}","");
+                String[] verbs = httpVerb.split(",");
+                for (String verb : verbs){                                        
+                    int lastIndex = verb.lastIndexOf('.');
+                    if (lastIndex >= 0 && lastIndex < verb.length()) {
+                        httpVerbList.add(verb.substring(lastIndex + 1));
+                    }
                 }
 
                 String consumes = getAnnotationValue(requestParam, "consumes");
                 String produces = getAnnotationValue(requestParam, "produces");
+                String preAuth = (preAuthorize != null) ? preAuthorize.toString().replace("@org.springframework.security.access.prepost.PreAuthorize(\"","").replace("\")","") : "";
+                List<String> preAuths = new ArrayList<String>();
 
-                RestApiDetails endpoint = new RestApiDetails(
+                //System.out.print("PHIL preAUTH: " + preAuth + "\n");
+                String[] auths = preAuth.split(" ");
+                for (String auth : auths){
+                    //System.out.print("PHIL AUTH: " + auth + "\n");
+                    if (auth.contains("hasRole")){
+                        String role = auth.replace("hasRole(\\'","").replace("\\')","");
+                        //System.out.print("PHIL Arole " + role + "\n");
+                        preAuths.add(role);
+                    }
+                }
+                RestApiAuthorizations rAA = new RestApiAuthorizations("hasRole",preAuths);
+
+
+                for (String hv : httpVerbList){
+                    RestApiDetails endpoint = new RestApiDetails(
                         url,
-                        httpVerb,
+                        hv,
                         consumes,
                         produces,
                         pathVariables,
                         requestParams,
                         body,
-                        sanitizeComment(method.commentText()));
+                        sanitizeComment(method.commentText()),
+                        rAA);
 
-                restCalls.add(endpoint);
+                    restCalls.add(endpoint);
+                }
+
             }
         }
         return restCalls;
@@ -182,11 +215,16 @@ public final class SpringWebServicesRestApiDoclet {
             AnnotationDesc annotation = getAnnotation(parameter, annotationType);
             if (annotation != null) {
                 String annotationValue = getAnnotationValue(annotation, "value");
+                String annotationDefault = getAnnotationValue(annotation, "defaultValue");
+                String annotationNeed = getAnnotationValue(annotation, "required");
+                if (annotationNeed.isEmpty()) annotationNeed = "false";
                 String parameterName = annotationValue.isEmpty() ? parameter.name() : annotationValue;
                 RestApiParameter apiParameter = new RestApiParameter(
                         parameterName,
                         parameter.typeName(),
-                        getParamTag(method, parameter.name()));
+                        getParamTag(method, parameter.name()),
+                        annotationDefault,
+                        annotationNeed);
                 variables.add(apiParameter);
             }
         }
@@ -318,7 +356,7 @@ public final class SpringWebServicesRestApiDoclet {
     private static AnnotationDesc getAnnotation(
             final ProgramElementDoc programElement, final String annotationName) {
         for (AnnotationDesc annotation : programElement.annotations()) {
-            if (annotation.annotationType().name().equals(annotationName)) {
+            if (annotation.annotationType().name().contains(annotationName)) {
                 return annotation;
             }
         }
@@ -337,7 +375,7 @@ public final class SpringWebServicesRestApiDoclet {
     private static AnnotationDesc getAnnotation(
             final Parameter parameter, final String annotationName) {
         for (AnnotationDesc annotation : parameter.annotations()) {
-            if (annotation.annotationType().name().equals(annotationName)) {
+            if (annotation.annotationType().name().contains(annotationName)) {
                 return annotation;
             }
         }
@@ -384,7 +422,9 @@ public final class SpringWebServicesRestApiDoclet {
                         parameter.name(),
                         parameter.type().toString(),
                         getParamTag(method, parameter.name()),
-                        typeDescription);
+                        "", // PALD - need to fill in the defaultValue here
+                        "", // PALD - need to fill in the need here
+                        "");//typeDescription);
             }
         }
         return bodyDescription;
